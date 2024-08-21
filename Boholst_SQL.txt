@@ -1,0 +1,81 @@
+load data infile 'C:/Users/cruza/OneDrive/Desktop/BrainStation Files/
+Brainstation FINAL PROJECT/Flight Cancellation Dataset/flights_sample_3m.csv' 
+ignore into table flightdata
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"' LINES TERMINATED BY '\n' IGNORE 1 rows;
+
+SHOW VARIABLES like 'local_data_infile';
+SHOW VARIABLES LIKE "secure_file_priv";
+SHOW GLOBAL VARIABLES LIKE 'local_infile';
+SET GLOBAL local_infile=1;
+SET GLOBAL secure_file_priv = "";
+
+
+ #show airline flights between 2019 and 2023#
+Select airline, count(airline) AS flightCount from flightdata group by airline order by flightCount desc;
+#Show percentage of flights by airline between 2019 and 2023
+Select airline, (count(airline)/(select count(airline) from flightdata))*100 AS Percentage
+ from flightdata group by airline order by percentage desc;
+
+#show top 5 cities where the most flights happen to for southwest airlines
+select origin_city, count(origin_city) AS originCityCount from flightdata where airline = "Southwest Airlines Co."
+ group by origin_city order by originCityCount desc LIMIT 5;
+ 
+ select dest_city, count(dest_city) AS destCityCount from flightdata where airline = "Southwest Airlines Co."
+ group by dest_city order by destCityCount desc LIMIT 5;
+ 
+ #show denver and chicago as percentage of flights origin
+ select origin_city, (count(origin_city)/(select count(origin_city) from flightdata
+ where airline = "Southwest Airlines Co."))*100 AS originCityPerc from flightdata where airline = "Southwest Airlines Co."
+ group by origin_city order by originCityPerc desc LIMIT 5;
+ 
+  #show denver and chicago as percentage of flights destination
+  select dest_city, (count(dest_city)/(select count(dest_city) from flightdata 
+  where airline = "Southwest Airlines Co."))*100 AS destCityPerc from flightdata where airline = "Southwest Airlines Co."
+ group by dest_city order by destCityPerc desc LIMIT 5;
+
+#show SAC delays
+select airline_dot, cancelled, dep_delay, arr_delay, delay_due_carrier, delay_due_weather, delay_due_nas, 
+delay_due_security, delay_due_late_aircraft from flightdata where airline = "Southwest Airlines Co.";
+
+#show flights with tallied delay/cancellations
+select airline, 
+sum(case when dep_delay> 0 and AIRLINE = "Southwest Airlines Co." THEN 1 ELSE 0 END) AS DEP_DELAY,
+sum(case when ARR_DELAY> 0 and AIRLINE = "Southwest Airlines Co." THEN 1 ELSE 0 END) AS ARR_DELAY,
+sum(case when DELAY_DUE_CARRIER> 0 and AIRLINE = "Southwest Airlines Co." THEN 1 ELSE 0 END) AS DELAY_DUE_CARRIER,
+sum(case when DELAY_DUE_WEATHER> 0 and AIRLINE = "Southwest Airlines Co." THEN 1 ELSE 0 END) AS DELAY_DUE_WEATHER,
+sum(case when DELAY_DUE_NAS> 0 and AIRLINE = "Southwest Airlines Co." THEN 1 ELSE 0 END)AS DELAY_DUE_NAS,
+sum(case when delay_due_security> 0 and AIRLINE = "Southwest Airlines Co." THEN 1 ELSE 0 END) AS delay_due_security,
+sum(case when delay_due_late_aircraft> 0 and AIRLINE = "Southwest Airlines Co." THEN 1 ELSE 0 END) AS delay_due_late_aircraft,
+sum(case when CANCELLED> 0 and AIRLINE = "Southwest Airlines Co." THEN 1 ELSE 0 END) AS CANCELLED
+FROM FLIGHTDATA WHERE AIRLINE = "Southwest Airlines Co.";
+
+select count(*) from flightdata;
+#show problematic flights
+select airline, 
+count(
+case 
+	#when cancelled = 1 THEN 1 
+    when dep_delay > 0 THEN 1 
+    when arr_delay > 0 THEN 1
+    when DELAY_DUE_CARRIER > 0 THEN 1
+    WHEN DELAY_DUE_WEATHER > 0 THEN 1
+    WHEN DELAY_DUE_NAS > 0 THEN 1
+    WHEN DELAY_DUE_SECURITY > 0 THEN 1
+    WHEN DELAY_DUE_LATE_AIRCRAFT> 0 THEN 1
+    else 0
+    end ) as Problematic_Flight_Count
+ from flightdata
+where airline = "Southwest Airlines Co.";	
+
+
+#Show cancellation count (SAC HIGHEST)
+select airline, count(cancelled) cancelCount from flightdata where cancelled = 1 group by airline order by cancelCount desc limit 5;
+
+#Show date counts per year
+select substring(fl_date,1,4) as flYear, count(fl_date) as Cnt from flightdata
+ where airline = "Southwest Airlines Co." group by substring(fl_date,1,4);
+ 
+#show counts per month for probability
+select month(fl_date) as flightMonth, count(fl_date) as Cnt
+ from flightdata where airline = "Southwest Airlines Co." group by flightMonth order by Cnt desc;
